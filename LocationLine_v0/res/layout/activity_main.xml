@@ -1,0 +1,51 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation = "vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context="com.example.locationline_v0.MainActivity" >
+
+    <TextView
+        android:id="@+id/textview_app_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_info" />
+
+     <TextView
+         android:id="@+id/textview_update_result"
+         android:layout_width="wrap_content"
+         android:layout_height="wrap_content"
+         android:layout_marginTop="14dp"
+         android:text="TextView" />
+
+     <Button
+         android:id="@+id/button_locationLine"
+         android:layout_width="wrap_content"
+         android:layout_height="wrap_content"
+         android:text="@string/button_locationLine" />
+
+     <Button
+         android:id="@+id/button_location_gathering_here"
+         android:layout_width="wrap_content"
+         android:layout_height="wrap_content"
+         android:onClick="beginGatheringHere"
+         android:text="Gather Here" />
+
+     <Button
+         android:id="@+id/button_locationMap"
+         android:layout_width="wrap_content"
+         android:layout_height="wrap_content"
+         android:text="@string/button_map" />
+
+     <Button
+         android:id="@+id/button1"
+         android:layout_width="wrap_content"
+         android:layout_height="wrap_content"
+         android:onClick="beginGathering"
+         android:text="Gather" />
+
+</LinearLayout>
