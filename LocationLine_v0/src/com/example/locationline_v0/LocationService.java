@@ -7,10 +7,14 @@ import java.util.TimerTask;
 
 import android.app.Service;
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -44,6 +48,12 @@ public class LocationService extends Service implements ConnectionCallbacks, OnC
 	private Timer timer;
 	private TimerTask timerTask;
 	final Handler handler = new Handler();
+	private String DATABASE_NAME = "LocationLineDatabase";
+	private String DATABASE_LOCATION, SDCARD_LOCATION;
+	private boolean databaseDroppedFlag;
+	private String tableName;
+	private boolean tableCreated;
+	private boolean databasePopulatedFlag;
 	
 	public LocationService() {
 		super();
@@ -54,6 +64,11 @@ public class LocationService extends Service implements ConnectionCallbacks, OnC
 	public void onConnected(Bundle arg0) {
 		
 		connected = true;
+		
+		//INIT THE DATABASE AND WRITE A VALUE 
+		SQLiteDatabase.openDatabase(DATABASE_LOCATION, null, SQLiteDatabase.CREATE_IF_NECESSARY); 
+		createTable("LocationTable");
+		startLocationUpdates();
 		
 	}
 
@@ -73,8 +88,17 @@ public class LocationService extends Service implements ConnectionCallbacks, OnC
 			mLatitude = String.valueOf(mCurrentLocation.getLatitude());
 			mLongitude  = String.valueOf(mCurrentLocation.getLongitude());
 		}
-		
+		Toast.makeText(this, "Location Chaged", Toast.LENGTH_SHORT).show();
 		sendLocationBroadCast();
+		
+		mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
+		String timeString = "uninit";
+		if(mLastUpdateTime != null) timeString = mLastUpdateTime.toString();
+		
+		if(mLatitude != null && tableCreated) {
+			writeLocationToDatabase(mLatitude, mLongitude, mLastUpdateTime);
+		}
+		
 	}
 	
 
@@ -87,6 +111,12 @@ public class LocationService extends Service implements ConnectionCallbacks, OnC
 				.addOnConnectionFailedListener( this)
 				.build();
 		createLocationRequest();
+		
+		//INIT DATABASE RELATED
+		//get database location
+	     SDCARD_LOCATION = Environment.getExternalStorageDirectory().getPath();
+	     DATABASE_LOCATION = SDCARD_LOCATION + "/LocationLine";
+	     //open the singleton database instance. 
 	}
 
 
@@ -102,7 +132,7 @@ public class LocationService extends Service implements ConnectionCallbacks, OnC
 		
 		
 		//time after every 5 seconds send again
-		startTimer();
+		//startTimer();
 		
 		return super.onStartCommand(intent, flags, startID);
 	}
@@ -207,7 +237,72 @@ public class LocationService extends Service implements ConnectionCallbacks, OnC
 		 * 3. 
 		 */
 		
+		SQLiteDatabase db = SQLiteDatabase.openDatabase(DATABASE_LOCATION, null, SQLiteDatabase.OPEN_READWRITE);
+    	Log.e("writeTable", "in WriteTable");
+    		db.beginTransaction();
+    		try{
+    			db.execSQL("insert into " + tableName + "(Latitude, Longitude, TimeStamp) values ("+ mLatitude2 + ", " + mLongitude2 + ", " + mLastUpdateTime2+ ");");
+    			//Log.i("DatabaseWriter", "Writing" + xObject[counter] + ", " + yObjects[counter] + ", " + zObjects[counter] + ");" );
+    			//db.execSQL(INSERT_DUMMY_VALUES_SQL);
+    			db.setTransactionSuccessful();
+    			databasePopulatedFlag = true;
+    		}catch(SQLiteException e){
+    			Log.e("Database", e.getMessage());
+    		}finally{
+    			db.endTransaction();
+    			db.close();
+    		}			
+    	
+    	
+		
+		
 	}
+	
+	public void createTable(String tableName){
+		SQLiteDatabase db;
+    	Log.i("createTable", "in CreateTable");
+    	db = this.openOrCreateDatabase(DATABASE_NAME , MODE_PRIVATE, null);
+		
+		String CREATE_TABLE_SQL = "create table if not exists " + tableName + " (" 
+				+ "timeStamp integer PRIMARY KEY autoincrement, "
+				+ "Latitude float, "
+				+ "Longitude float, "
+				+ "TimeStamp float ); ";
+		
+		String INSERT_DUMMY_VALUES_SQL = "insert into " + tableName + "(Latitude, Longitude, TimeStamp) values (12, 13, 14);";
+		
+		db.beginTransaction();
+		try{
+			db.execSQL(CREATE_TABLE_SQL);
+			db.execSQL(INSERT_DUMMY_VALUES_SQL);
+			db.setTransactionSuccessful();
+		}catch(SQLiteException e){
+			Log.i("Database", e.getMessage());
+		}finally{
+			db.endTransaction();
+			tableCreated = true;
+			db.close();
+		}	
+	}
+	
+	
+	 public void dropTable(){
+	    	SQLiteDatabase db = SQLiteDatabase.openDatabase(DATABASE_LOCATION, null, SQLiteDatabase.OPEN_READWRITE);
+	    	db.beginTransaction();
+			try{
+				db.execSQL("DROP TABLE IF EXISTS "+ tableName);
+				db.setTransactionSuccessful();
+				databaseDroppedFlag = true;
+			}catch(SQLiteException e){
+				Log.e("Database", e.getMessage());
+			}finally{
+				db.endTransaction();
+				Toast.makeText(this, "drop table complete", Toast.LENGTH_SHORT).show();
+			}
+	    	
+	    }
+	 
+	 
 
 	protected void createLocationRequest(){
 		mLocationRequest = new LocationRequest();
